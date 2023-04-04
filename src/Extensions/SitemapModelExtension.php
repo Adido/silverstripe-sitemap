@@ -4,10 +4,14 @@ namespace Innoweb\Sitemap\Extensions;
 
 use Innoweb\Sitemap\Pages\SitemapPage;
 use SilverStripe\CMS\Model\SiteTree;
+use SilverStripe\Core\Convert;
+use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Forms\CheckboxField;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\ORM\ArrayList;
 use SilverStripe\ORM\DataExtension;
+use SilverStripe\ORM\DataObjectSchema;
+use SilverStripe\ORM\DB;
 use SilverStripe\Versioned\Versioned;
 
 class SitemapModelExtension extends DataExtension
@@ -67,13 +71,30 @@ class SitemapModelExtension extends DataExtension
      */
     public function SitemapCacheKey()
     {
-        $query = Versioned::get_by_stage(SiteTree::class, Versioned::LIVE);
-        $fragments = [
+        $query = '
+            SELECT MAX(LastEdited) as LastEdited, SUM(count) as Total
+            FROM (
+                SELECT MAX(LastEdited) AS LastEdited, COUNT(ID) AS count from SiteTree_Live
+        ';
+
+        // sum any child models
+        $mapping = SitemapPage::config()->get('data_object_children');
+        if (! is_array($mapping)) $mapping = [];
+        foreach (array_values($mapping) as $model) {
+            $table = Convert::raw2sql(
+                Injector::inst()->get(DataObjectSchema::class)->tableName($model)
+            );
+            $query .= " UNION SELECT MAX(LastEdited) AS LastEdited, COUNT(ID) AS count from {$table} ";
+        }
+
+        $query .= ') as summary';
+
+        $results = DB::query($query)->next();
+        return implode('-_-', [
             $this->owner->ID,
-            $query->max('LastEdited'),
-            $query->count(),
-        ];
-        return implode('-_-', $fragments);
+            $results['LastEdited'] ?? '',
+            (int) ($results['Total'] ?? 0),
+        ]);
     }
 
     /**
@@ -106,13 +127,16 @@ class SitemapModelExtension extends DataExtension
 
         // don't return any children if mapping is not defined for the page type
         $mapping = SitemapPage::config()->get('data_object_children');
+        if (! is_array($mapping)) $mapping = [];
         if (! in_array(get_class($this->owner), array_keys($mapping))) return null;
 
         $objectClass = $mapping[get_class($this->owner)];
         if (! $objectClass) return null;
 
         $filters = SitemapPage::config()->get('data_object_filters');
-        $objectFilters = isset($filters[$objectClass]) ? $filters[$objectClass] : [];
+        $objectFilters = isset($filters[$objectClass]) && is_array($filters[$objectClass])
+            ? $filters[$objectClass] :
+            [];
 
         return $objectClass::get()->filter(array_merge($objectFilters, [
             'ShowInSitemap' => 1
