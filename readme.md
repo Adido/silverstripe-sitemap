@@ -5,7 +5,7 @@
 
 ## Overview
 
-Adds a page type that automatically builds a sitemap from the view tree. 
+Adds a page type that automatically builds a sitemap from the view tree.
 
 The module adds a new checkbox to the Settings tab of each page, where visibility of the page in the sitemap can be controlled.
 
@@ -26,6 +26,26 @@ composer require innoweb/silverstripe-sitemap dev-master
 or download or git clone the module into a ‘sitemap’ directory in your webroot.
 
 Then run dev/build.
+
+## Adding Direct Data Object Descendants
+
+You can also define Data Objects to appear as descendants in the sitemap.
+
+This is useful where Data Objects are represented as pages, and should appear in the sitemap.
+
+1. Add data_object_children to `app.yml`
+```
+Innoweb\Sitemap\Pages\SitemapPage:
+  data_object_children:
+    Qualified\Page\Class: Qualified\DataObject\Class
+```
+2. (optional) Specify any Data Object query filters
+```
+Innoweb\Sitemap\Pages\SitemapPage:
+  data_object_filters:
+    Qualified\DataObject\Class:
+      'Enabled': true
+```
 
 ## License
 

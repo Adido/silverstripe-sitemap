@@ -13,8 +13,27 @@ class SitemapPage extends \Page {
     private static $table_name = 'SitemapPage';
 
     private static $icon  = 'innoweb/silverstripe-sitemap: client/images/treeicons/sitemap.gif';
-	
+
 	private static $excluded_pagetypes = [];
+
+    /**
+     * An associative array representing which data objects should appear as
+     * direct descendants to SiteMap pages.
+     *
+     * Qualified SiteMap Class Name => Qualified DataObject ClassName
+     *
+     * @var array<string, string>
+     */
+	private static $data_object_children = [];
+
+    /**
+     * An associative array of filters to be applied to child data object queries.
+     *
+     * Qualified DataObject ClassName => [Field Name => Value]
+     *
+     * @var array<string, <string, string>>
+     */
+	private static $data_object_filters = [];
 
     private static $defaults = [
         'ShowInMenus'   => false,
