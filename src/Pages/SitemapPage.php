@@ -3,6 +3,7 @@
 namespace Innoweb\Sitemap\Pages;
 
 use SilverStripe\CMS\Model\SiteTree;
+use SilverStripe\Versioned\Versioned;
 
 class SitemapPage extends \Page {
 
@@ -44,20 +45,17 @@ class SitemapPage extends \Page {
 
     public function SitemapRootItems()
     {
-        if (class_exists('Symbiote\Multisites\Multisites')) {
-            $parent = $this->SiteID;
-        } else {
-            $parent = 0;
-        }
+        $parent = class_exists('Symbiote\Multisites\Multisites') ? $this->SiteID : 0;
         $filter = [
             'ParentID'       =>  $parent,
             'ShowInSitemap'  =>  1,
         ];
+
         if (count(self::config()->get('excluded_pagetypes'))) {
             $filter['ClassName:not'] = self::config()->get('excluded_pagetypes');
         }
-        $items = SiteTree::get()->filter($filter);
-        return $items;
+
+        return Versioned::get_by_stage(SiteTree::class, Versioned::LIVE)->filter($filter);
     }
 
 }

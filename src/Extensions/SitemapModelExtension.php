@@ -8,6 +8,7 @@ use SilverStripe\Forms\CheckboxField;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\ORM\ArrayList;
 use SilverStripe\ORM\DataExtension;
+use SilverStripe\Versioned\Versioned;
 
 class SitemapModelExtension extends DataExtension
 {
@@ -66,10 +67,11 @@ class SitemapModelExtension extends DataExtension
      */
     public function SitemapCacheKey()
     {
+        $query = Versioned::get_by_stage(SiteTree::class, Versioned::LIVE);
         $fragments = [
             $this->owner->ID,
-            SiteTree::get()->max('LastEdited'),
-            SiteTree::get()->count() // TODO: update
+            $query->max('LastEdited'),
+            $query->count(),
         ];
         return implode('-_-', $fragments);
     }
@@ -83,11 +85,14 @@ class SitemapModelExtension extends DataExtension
     {
         if (! $this->owner instanceof SiteTree) return null;
 
-        $filter = ['ShowInSitemap' => '1'];
+        $filter = [
+            'ShowInSitemap' => 1,
+            'ParentID' => $this->owner->ID,
+        ];
         $excludedPageTypes = SitemapPage::config()->get('excluded_pagetypes');
         if (count($excludedPageTypes)) $filter['ClassName:not'] = $excludedPageTypes;
 
-        return $this->owner->AllChildren()->filter($filter);
+        return Versioned::get_by_stage(SiteTree::class, Versioned::LIVE)->filter($filter);
     }
 
     /**
@@ -110,7 +115,7 @@ class SitemapModelExtension extends DataExtension
         $objectFilters = isset($filters[$objectClass]) ? $filters[$objectClass] : [];
 
         return $objectClass::get()->filter(array_merge($objectFilters, [
-            'ShowInSitemap' => '1'
+            'ShowInSitemap' => 1
         ]));
     }
 
