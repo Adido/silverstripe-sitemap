@@ -7,6 +7,7 @@ use SilverStripe\CMS\Model\SiteTree;
 use SilverStripe\Core\Convert;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Forms\CheckboxField;
+use SilverStripe\Forms\FieldGroup;
 use SilverStripe\Forms\FieldList;
 use SilverStripe\ORM\ArrayList;
 use SilverStripe\ORM\DataExtension;
@@ -33,7 +34,14 @@ class SitemapModelExtension extends DataExtension
             return;
         }
 
-        $this->addShowInSitemapField($fields);
+        $fields->addFieldToTab(
+            'Root.Settings',
+            CheckboxField::create(
+                'ShowInSitemap',
+                _t('SitemapDecorator.SHOWINSITEMAP', 'Show in sitemap?')
+            ),
+            'ShowInSearch'
+        );
     }
 
     public function updateCMSFields(FieldList $fields)
@@ -41,7 +49,18 @@ class SitemapModelExtension extends DataExtension
         // ensure sitemap setting isn't added twice to SiteTree pages
         if ($this->owner instanceof SiteTree) return;
 
-        $this->addShowInSitemapField($fields);
+        $visibilityGroup = $fields->fieldByName('Root.Settings.Visibility');
+        if (! $visibilityGroup) $fields->addFieldToTab(
+            'Root.Settings',
+            $visibilityGroup = FieldGroup::create('Visibility')
+        );
+
+        $visibilityGroup->push(
+            CheckboxField::create(
+                'ShowInSitemap',
+                _t('SitemapDecorator.SHOWINSITEMAP', 'Show in sitemap?')
+            )
+        );
     }
 
     /**
@@ -141,20 +160,5 @@ class SitemapModelExtension extends DataExtension
         return $objectClass::get()->filter(array_merge($objectFilters, [
             'ShowInSitemap' => 1
         ]));
-    }
-
-    /**
-     * Append the show in search field to a field list.
-     */
-    private function addShowInSitemapField(FieldList $fields)
-    {
-        $fields->addFieldToTab(
-            'Root.Settings',
-            CheckboxField::create(
-                'ShowInSitemap',
-                _t('SitemapDecorator.SHOWINSITEMAP', 'Show in sitemap?')
-            ),
-            'ShowInSearch'
-        );
     }
 }
